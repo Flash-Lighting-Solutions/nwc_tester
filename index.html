@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, user-scalable=no">
-        <script src="https://supertestnet.github.io/nwcjs/nwcjs.js"></script>
+        <script src="../nwcjs/nwcjs.js"></script>
         <script src="https://bundle.run/browserify-cipher@1.0.1"></script>
         <script src="https://bundle.run/noble-secp256k1@1.2.14"></script>
         <script src="https://bundle.run/bech32@2.0.0"></script>
@@ -101,6 +101,24 @@
             <p><input class="invoice_desc"></p>
             <p><button class="make_invoice">Submit</button></p>
             <p class="status_box">Status: <span class="make_invoice_status">Not active yet</span></p>
+        </div>
+        <div class="testing_div make_liquid_address_div">
+            <h2>Make Liquid Address</h2>
+            <p>Enter NWC string</p>
+            <p><input class="nwc_string"></p>
+            <p><button class="make_liquid_address">Submit</button></p>
+            <p class="status_box">Status: <span class="make_liquid_address_status">Not active yet</span></p>
+        </div>
+        <div class="testing_div pay_liquid_div">
+            <h2>Pay Liquid</h2>
+            <p>Enter NWC string</p>
+            <p><input class="nwc_string"></p>
+            <p>Enter address to pay</p>
+            <p><input class="address_to_pay"></p>
+            <p>Amount to pay</p>
+            <p><input class="pay_liquid_amnt" type="number" min="1" step="1"></p>
+            <p><button class="pay_liquid">Submit</button></p>
+            <p class="status_box">Status: <span class="pay_liquid_status">Not active yet</span></p>
         </div>
         <div class="testing_div check_invoice_div">
             <h2>Check invoice</h2>
@@ -224,6 +242,18 @@
                 }
                 $( ".make_invoice_status" ).innerText = `The invoice was successfully retrieved and is ${invoice_info.result.invoice || invoice_info.result.bolt11}\n\nFull response:\n\n${JSON.stringify( invoice_info.result, null, 4 )}`;
             }
+            $( '.make_liquid_address' ).onclick = async () => {
+                var nwc_string = $( '.make_liquid_address_div .nwc_string' ).value;
+                var nwc_info = nwcjs.processNWCstring( nwc_string );
+                var delay_tolerance = 6;
+                $( ".make_liquid_address_status" ).innerText = `sending a request for a liquid address and waiting up to 6 seconds for a response...`;
+                var address_info = await nwcjs.makeLiquidAddress( nwc_info, delay_tolerance );
+                if ( "error" in address_info && address_info[ "error" ] ) {
+                    $( ".make_liquid_address_status" ).innerText = `error: ` + JSON.stringify( address_info[ "error" ] );
+                    return;
+                }
+                $( ".make_liquid_address_status" ).innerText = `The address was successfully retrieved and is ${address_info.result.address}\n\nFull response:\n\n${JSON.stringify( address_info.result, null, 4 )}`;
+            }
             $( '.check_invoice' ).onclick = async () => {
                 var nwc_string = $( '.check_invoice_div .nwc_string' ).value;
                 var nwc_info = nwcjs.processNWCstring( nwc_string );
@@ -246,6 +276,16 @@
                 nwcjs.tryToPayInvoice( nwc_info, invoice, amnt );
                 await nwcjs.waitSomeSeconds( 1 );
                 $( ".pay_invoice_status" ).innerText = `A request to pay the invoice was sent. Consider using "Check invoice" to view its status.`;
+            }
+            $( '.pay_liquid' ).onclick = async () => {
+                var nwc_string = $( '.pay_liquid_div .nwc_string' ).value;
+                var nwc_info = nwcjs.processNWCstring( nwc_string );
+                var address = $( '.pay_liquid_div .address_to_pay' ).value;
+                var amnt = Number( $( '.pay_liquid_div .pay_liquid_amnt' ).value );
+                $( ".pay_liquid_status" ).innerText = `Sending request...`;
+                nwcjs.tryToPayLiquid( nwc_info, address, amnt );
+                await nwcjs.waitSomeSeconds( 1 );
+                $( ".pay_liquid_status" ).innerText = `A request to pay the address was sent. Consider using "Get balance" to view the new balance.`;
             }
             $( '.get_balance' ).onclick = async () => {
                 var nwc_string = $( '.get_balance_div .nwc_string' ).value;
